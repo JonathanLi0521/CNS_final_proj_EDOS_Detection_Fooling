@@ -8,6 +8,8 @@ python preprocess.py
   * For the row written in float or int, I did normalization.
   * For the row written in words, such as attack categories, I applied one hot to represent each category.
 
+## Grid Search to Reproduce Results
+
 
 ## Environment Issues
 * Running preprocess.py requires the module ordered_set
@@ -41,3 +43,12 @@ python preprocess.py
     pip install pyopenssl --upgrade
     ```
     .Then, you should be able to install ordered_set and thus run preprocess.py
+
+* Before training / grid search, run
+    ```shell
+    apt-get update
+    ```
+    and
+    ``` shell
+    apt install libsvm-tools
+    ```
