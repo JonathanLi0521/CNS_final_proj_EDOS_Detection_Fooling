@@ -10,6 +10,10 @@ python preprocess.py
 
 ## Grid Search to Reproduce Results
 
+## Analysis
+The current implementation of `analyze.py` takes one or two .csv files in the format of UNSW_NB15 as input. 
+* For one file, comment the comparison section. Running `analyze.py` outputs `analysis` that contains the average and standard deviation of each continous data category.
+* For two files, running `analyze.py` outputs `analysis` that contains the aforementioned information for both files, and also the difference between the two (both by value and by value / std).
 
 ## Environment Issues
 * Running preprocess.py requires the module ordered_set
