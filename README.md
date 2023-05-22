@@ -11,8 +11,9 @@ python preprocess.py
 ```shell
 python preprocess_csv.py
 ```
-* `preprocess_csv.py` generates two csv files, `train.csv` and `test.csv`.
+* `preprocess_csv.py` generates two csv files, `train.csv` and `test.csv` under `preprocess` directory.
 * Details
+  * Map attack category to multiclass label 
   * Drop rows containing NA (seems none)
   * Min-max normalization
   * One hot encoding
