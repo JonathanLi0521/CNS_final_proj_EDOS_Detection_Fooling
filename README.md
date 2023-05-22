@@ -8,6 +8,16 @@ python preprocess.py
   * For the row written in float or int, I did normalization.
   * For the row written in words, such as attack categories, I applied one hot to represent each category.
 
+```shell
+python preprocess_csv.py
+```
+* `preprocess_csv.py` generates two csv files, `train.csv` and `test.csv` under `preprocess` directory.
+* Details
+  * Map attack category to multiclass label 
+  * Drop rows containing NA (seems none)
+  * Min-max normalization
+  * One hot encoding
+
 ## Grid Search to Reproduce Results
 
 ## Analysis
