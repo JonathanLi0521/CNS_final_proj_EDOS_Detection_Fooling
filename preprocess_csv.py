@@ -13,7 +13,7 @@ def preprocessing(data, split):
     data.to_csv(f'{split}.csv', index=False)
 
 if __name__ == "__main__":
-    train_data = pd.read_csv('../data/UNSW_NB15_training-set.csv')
+    train_data = pd.read_csv('./data/UNSW_NB15_training-set.csv')
     preprocessing(train_data, 'train')
-    test_data = pd.read_csv("../data/UNSW_NB15_testing-set.csv")
+    test_data = pd.read_csv("./data/UNSW_NB15_testing-set.csv")
     preprocessing(test_data, 'test')
