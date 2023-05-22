@@ -1,0 +1,12 @@
+{
+    "Normal": 0,
+    "Fuzzers": 1,
+    "Analysis": 2,
+    "Backdoor": 3,
+    "DoS": 4,
+    "Exploits": 5,
+    "Generic": 6, 
+    "Reconnaissance": 7,
+    "Shellcode": 8,
+    "Worms": 9
+}
