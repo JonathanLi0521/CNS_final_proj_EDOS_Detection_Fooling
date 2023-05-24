@@ -2,9 +2,9 @@ import pandas as pd
 import numpy as np
 from ordered_set import OrderedSet
 
-INFILEPATH = "./data/UNSW_NB15_training-set.csv"
-INFILEPATH2 = "./data/UNSW_NB15_testing-set.csv"
-OUTFILEPATH = "./analysis"
+INFILEPATH = "./data/all_Normal.csv"
+INFILEPATH2 = "./data/all_Worms.csv"
+OUTFILEPATH = "./analysis/all_Normal_Worms"
 
 not_conti = ['id', 'proto', 'service', 'attack_cat', 'state', 'label']
 
@@ -24,7 +24,6 @@ def proc_not_conti(X):
     pass
  
 def analysis(procdata):
-    
     analysis_res = {} # {key: (avg, var)} for continuous data
     for key in procdata.keys():
         if key in not_conti:
