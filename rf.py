@@ -12,6 +12,8 @@ from sklearn.tree import export_graphviz
 import graphviz
 import matplotlib.pyplot as plt
 
+mode = 'multiclass' # mode = ['binary', 'multiclass']
+
 # Data
 def load_data(preprocess_dir, split, label='label'):
     data = pd.read_csv(preprocess_dir / f'{split}.csv')
@@ -20,7 +22,7 @@ def load_data(preprocess_dir, split, label='label'):
     return data, X, y
 
 preprocess_dir = Path('./preprocess/')
-label = 'attack_cat' # 'label': binary, 'attack_cat': multiclass
+label = 'label' if mode[0] ==  'b' else 'attack_cat'
 _, X_train, y_train = load_data(preprocess_dir, 'train', label)
 data_test, X_test, y_test = load_data(preprocess_dir, 'test', label)
 # Split validation set
@@ -47,7 +49,7 @@ results_all = pd.DataFrame.from_dict(rand_search.cv_results_)
 results = results_all[['params', 'mean_train_score', 'mean_test_score']]
 results = results.sort_values(by=['mean_test_score'], ascending=False)
 results = results.round(decimals=4)
-results.to_csv('./rf_results.csv')
+results.to_csv(f'./rf_results_{mode}.csv')
 
 # Evaluation
 best_rf = rand_search.best_estimator_
@@ -77,7 +79,7 @@ feature_importances[:20].plot.bar()
 
 # Fooling cases
 data_fool = data_test[np.logical_and(y_pred == 0, y_test != 0)]
-data_fool.to_csv('fool.csv', index=False)
+data_fool.to_csv(f'./rf_fool_{mode}.csv', index=False)
 
 # Visualizing results
 # rf_dir = Path('./RF/')
