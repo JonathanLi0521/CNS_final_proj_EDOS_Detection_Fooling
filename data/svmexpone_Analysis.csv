@@ -1,0 +1,9 @@
+id,dur,proto,service,state,spkts,dpkts,sbytes,dbytes,rate,sttl,dttl,sload,dload,sloss,dloss,sinpkt,dinpkt,sjit,djit,swin,stcpb,dtcpb,dwin,tcprtt,synack,ackdat,smean,dmean,trans_depth,response_body_len,ct_srv_src,ct_state_ttl,ct_dst_ltm,ct_src_dport_ltm,ct_dst_sport_ltm,ct_dst_src_ltm,is_ftp_login,ct_ftp_cmd,ct_flw_http_mthd,ct_src_ltm,ct_srv_dst,is_sm_ips_ports,attack_cat,label
+808,8.00E-06,vmtp,-,INT,2,0,200,0,125000.0003,254,0,100000000,0,0,0,0.008,0,0,0,0,0,0,0,0,0,0,100,0,0,0,3,2,2,1,1,4,0,0,0,2,3,0,Analysis,Normal
+1394,9.00E-06,sctp,-,INT,2,0,104,0,111111.1072,254,0,46222220,0,0,0,0.009,0,0,0,0,0,0,0,0,0,0,52,0,0,0,1,2,2,1,1,2,0,0,0,1,1,0,Analysis,Normal
+1777,5.00E-06,hmp,-,INT,2,0,200,0,200000.0051,254,0,160000000,0,0,0,0.005,0,0,0,0,0,0,0,0,0,0,100,0,0,0,3,2,1,1,1,3,0,0,0,1,3,0,Analysis,Normal
+2123,9.00E-06,merit-inp,-,INT,2,0,200,0,111111.1072,254,0,88888888,0,0,0,0.009,0,0,0,0,0,0,0,0,0,0,100,0,0,0,3,2,2,1,1,3,0,0,0,3,3,0,Analysis,Normal
+3103,5.00E-06,ddx,-,INT,2,0,200,0,200000.0051,254,0,160000000,0,0,0,0.005,0,0,0,0,0,0,0,0,0,0,100,0,0,0,3,2,1,1,1,3,0,0,0,10,3,0,Analysis,Normal
+47399,1.10E-05,unas,-,INT,2,0,200,0,90909.0902,254,0,72727272,0,0,0,0.011,0,0,0,0,0,0,0,0,0,0,100,0,0,0,3,2,2,2,2,2,0,0,0,6,3,0,Analysis,Normal
+47450,1.10E-05,unas,-,INT,2,0,200,0,90909.0902,254,0,72727272,0,0,0,0.011,0,0,0,0,0,0,0,0,0,0,100,0,0,0,3,2,2,2,2,2,0,0,0,6,3,0,Analysis,Normal
+47543,7.00E-06,unas,-,INT,2,0,200,0,142857.1409,254,0,114285712,0,0,0,0.007,0,0,0,0,0,0,0,0,0,0,100,0,0,0,4,2,3,2,2,3,0,0,0,10,4,0,Analysis,Normal
