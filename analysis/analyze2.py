@@ -223,6 +223,7 @@ with open(args.outputcsv, 'w+') as outfile:
     csv_writer.writerow([])
     csv_writer.writerow(["sorted by 2nd:"])
     csv_writer.writerow([args.comp_file_1])
+    Acompare_categories.insert(0, "")
     csv_writer.writerow(Acompare_categories)
     Aavgrow1.insert(0, "avg")
     Astdrow1.insert(0, "std")
