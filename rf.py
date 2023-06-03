@@ -20,6 +20,7 @@ feature_selection = False
 weighted = False
 tuning = False
 tuning_adv = False
+tuning_retrain = False
 
 # Data
 label = 'label' if mode[0] ==  'b' else 'attack_cat'
@@ -66,7 +67,7 @@ def hyperparameter_tuning(X_train, y_train):
 
 if tuning:
     rand_search, results = hyperparameter_tuning(X_train, y_train)
-    # results.to_csv(output_dir / f'rf_results_{mode}.csv')
+    results.to_csv(output_dir / f'rf_results_{mode}.csv')
     
     best_rf = rand_search.best_estimator_
     print('Best hyperparameters:',  rand_search.best_params_)
@@ -111,12 +112,13 @@ def evaluate(y_test, y_pred, cm_title='Confusion matrix'):
     fig, ax = plt.subplots(figsize=(8, 8))
     ConfusionMatrixDisplay.from_predictions(
         y_test, y_pred,
+        values_format='d',
         cmap=plt.cm.Blues,
         ax=ax
     )
     plt.xlabel('Predicted label', fontsize=15)
     plt.ylabel('True label', fontsize=15)
-    plt.title(cm_title, fontsize=20)
+    plt.title(cm_title, fontsize=15)
     plt.show()
     
     evaluation = {
@@ -141,57 +143,90 @@ def evaluate(y_test, y_pred, cm_title='Confusion matrix'):
 # Split testing set
 X_test1, X_test2, y_test1, y_test2 = train_test_split(X_test, y_test, train_size=0.5, random_state=1)
 
-# Model performance
-y_pred1 = best_rf.predict(X_test1)
-print('test1 evaluation:')
-evaluation_test1 = evaluate(y_test1, y_pred1, 'Prediction on testing set 1')
+def adversarial_attack(X_test1, y_test1, X_test2, y_test2, best_rf, tag=''):
+    # Model performance
+    y_pred1 = best_rf.predict(X_test1)
+    print('test1 evaluation:')
+    evaluation_test1 = evaluate(y_test1, y_pred1, f'Test1{tag}')
+    
+    # Adversarial attack
+    # Label: fooled or not
+    y_fool1 = np.logical_and(y_pred1 == 0, y_test1 != 0)
+    
+    # Training
+    if tuning_adv:
+        rand_search_adv, results_adv = hyperparameter_tuning(X_test1, y_fool1)
+        results_adv.to_csv(output_dir / f'rf_results_adv_{tag}_{mode}.csv')
+        best_rf_adv = rand_search_adv.best_estimator_
+        print('Best hyperparameters:',  rand_search_adv.best_params_)
+        print('Best score:', rand_search_adv.best_score_)
+    else:
+        best_rf_adv = RandomForestClassifier(n_estimators=38, max_depth=17, class_weight='balanced' if weighted else None)
+        best_rf_adv.fit(X_test1, y_fool1)
+    
+    # Attack efficiency: model performance reduction
+    # Model performance before attack
+    y_pred2 = best_rf.predict(X_test2)
+    print('Evaluation before attack:')
+    evaluation_test2 = evaluate(y_test2, y_pred2, f'Test2{tag}')
+    
+    X_test2_attack = X_test2[y_test2 != 0]
+    y_test2_attack = y_test2[y_test2 != 0]
+    y_pred2_attack = best_rf.predict(X_test2_attack)
+    print('Evaluation before attack (attack only):')
+    evaluation_test2_attack = evaluate(y_test2_attack, y_pred2_attack, f'Test2 (attack){tag}')
+    
+    # Model performance after attack
+    y_fool2_pred = best_rf_adv.predict(X_test2)
+    X_test2_adv = X_test2[y_fool2_pred]
+    y_test2_adv = y_test2[y_fool2_pred]
+    y_pred2_adv = best_rf.predict(X_test2_adv)
+    print('Evaluation after attack:')
+    evaluation_test2_adv = evaluate(y_test2_adv, y_pred2_adv, f'Adversarial test2{tag}')
+    
+    y_fool2_attack_pred = best_rf_adv.predict(X_test2_attack)
+    X_test2_attack_adv = X_test2_attack[y_fool2_attack_pred]
+    y_test2_attack_adv = y_test2_attack[y_fool2_attack_pred]
+    y_pred2_attack_adv = best_rf.predict(X_test2_attack_adv)
+    print('Evaluation after attack (attack only):')
+    evaluation_test2_adv_attack = evaluate(y_test2_attack_adv, y_pred2_attack_adv, f'Adversarial test2 (attack){tag}')
+    
+    # Fooling case prediction performance
+    y_fool2 = np.logical_and(y_pred2 == 0, y_test2 != 0)
+    print('Fooling case evaluation:')
+    evaluation_fool2 = evaluate(y_fool2, y_fool2_pred, f'Fooling case {tag}')
+    
+    y_fool2_attack = np.logical_and(y_pred2_attack == 0, y_test2_attack != 0)
+    print('Fooling case evaluation:')
+    evaluation_fool2_attack = evaluate(y_fool2_attack, y_fool2_attack_pred, f'Fooling case (attack){tag}')
+    
+    evaluation = {
+        'evaluation_test1': evaluation_test1,
+        'evaluation_test2': evaluation_test2,
+        'evaluation_test2_attack': evaluation_test2_attack,
+        'evaluation_test2_adv': evaluation_test2_adv,
+        'evaluation_test2_adv_attack': evaluation_test2_adv_attack,
+        'evaluation_fool2': evaluation_fool2,
+        'evaluation_fool2_attack': evaluation_fool2_attack
+    }
+    
+    return evaluation
 
-# Adversarial attack
-# Label: fooled or not
-y_fool1 = np.logical_and(y_pred1 == 0, y_test1 != 0)
+print('Attack without retraining:')
+evaluation_attack = adversarial_attack(X_test1, y_test1, X_test2, y_test2, best_rf)
 
-# Training
-if tuning_adv:
-    rand_search_adv, _ = hyperparameter_tuning(X_test1, y_fool1)
-    best_rf_adv = rand_search_adv.best_estimator_
-    print('Best hyperparameters:',  rand_search_adv.best_params_)
-    print('Best score:', rand_search_adv.best_score_)
+# Model retraining
+X_retrain = pd.concat([X_train, X_test1], ignore_index=True)
+y_retrain = pd.concat([y_train, y_test1], ignore_index=True)
+if tuning_retrain:
+    rand_search_retrain, results_retrain = hyperparameter_tuning(X_retrain, y_retrain)
+    results_retrain.to_csv(output_dir / f'rf_results_retrain_{mode}.csv')
+    
+    best_rf_retrain = rand_search_retrain.best_estimator_
+    print('Best hyperparameters:',  rand_search_retrain.best_params_)
+    print('Best score:', rand_search_retrain.best_score_)
 else:
-    best_rf_adv = RandomForestClassifier(n_estimators=38, max_depth=17, class_weight='balanced' if weighted else None)
-    best_rf_adv.fit(X_test1, y_fool1)
-
-# Attack efficiency: model performance reduction
-# Model performance before attack
-y_pred2 = best_rf.predict(X_test2)
-print('Evaluation before attack:')
-evaluation_test2 = evaluate(y_test2, y_pred2, 'Prediction on testing set 2')
-
-X_test2_attack = X_test2[y_test2 != 0]
-y_test2_attack = y_test2[y_test2 != 0]
-y_pred2_attack = best_rf.predict(X_test2_attack)
-print('Evaluation before attack (attack only):')
-evaluation_test2_attack = evaluate(y_test2_attack, y_pred2_attack, 'Prediction on testing set (attack only)')
-
-# Model performance after attack
-y_fool2_pred = best_rf_adv.predict(X_test2)
-X_test2_adv = X_test2[y_fool2_pred]
-y_test2_adv = y_test2[y_fool2_pred]
-y_pred2_adv = best_rf.predict(X_test2_adv)
-print('Evaluation after attack:')
-evaluation_test2_adv = evaluate(y_test2_adv, y_pred2_adv, 'Prediction on adversarial testing set')
-
-y_fool2_attack_pred = best_rf_adv.predict(X_test2_attack)
-X_test2_attack_adv = X_test2_attack[y_fool2_attack_pred]
-y_test2_attack_adv = y_test2_attack[y_fool2_attack_pred]
-y_pred2_attack_adv = best_rf.predict(X_test2_attack_adv)
-print('Evaluation after attack (attack only):')
-evaluation_test2_adv_attack = evaluate(y_test2_attack_adv, y_pred2_attack_adv, 'Prediction on adversarial testing set (attack only)')
-
-# Fooling case prediction performance
-y_fool2 = np.logical_and(y_pred2 == 0, y_test2 != 0)
-print('Fooling case evaluation:')
-evaluation_fool2 = evaluate(y_fool2, y_fool2_pred, 'Fooling case prediction')
-
-y_fool2_attack = np.logical_and(y_pred2_attack == 0, y_test2_attack != 0)
-print('Fooling case evaluation:')
-evaluation_fool2_attack = evaluate(y_fool2_attack, y_fool2_attack_pred, 'Fooling case prediction (attack only)')
+    best_rf_retrain = RandomForestClassifier(n_estimators=38, max_depth=17, class_weight='balanced' if weighted else None)
+    best_rf_retrain.fit(X_retrain, y_retrain)
+print('Attack with retraining:')
+evaluation_attack_retrain = adversarial_attack(X_test1, y_test1, X_test2, y_test2, best_rf_retrain, tag=' after retraining')
