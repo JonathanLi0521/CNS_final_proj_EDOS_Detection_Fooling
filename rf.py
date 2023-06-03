@@ -141,9 +141,13 @@ def evaluate(y_test, y_pred, cm_title='Confusion matrix'):
 # Split testing set
 X_test1, X_test2, y_test1, y_test2 = train_test_split(X_test, y_test, train_size=0.5, random_state=1)
 
+# Model performance
+y_pred1 = best_rf.predict(X_test1)
+print('test1 evaluation:')
+evaluation_test1 = evaluate(y_test1, y_pred1, 'Prediction on testing set 1')
+
 # Adversarial attack
 # Label: fooled or not
-y_pred1 = best_rf.predict(X_test1)
 y_fool1 = np.logical_and(y_pred1 == 0, y_test1 != 0)
 
 # Training
@@ -160,7 +164,13 @@ else:
 # Model performance before attack
 y_pred2 = best_rf.predict(X_test2)
 print('Evaluation before attack:')
-evaluation_test2 = evaluate(y_test2, y_pred2, 'Prediction on testing set')
+evaluation_test2 = evaluate(y_test2, y_pred2, 'Prediction on testing set 2')
+
+X_test2_attack = X_test2[y_test2 != 0]
+y_test2_attack = y_test2[y_test2 != 0]
+y_pred2_attack = best_rf.predict(X_test2_attack)
+print('Evaluation before attack (attack only):')
+evaluation_test2_attack = evaluate(y_test2_attack, y_pred2_attack, 'Prediction on testing set (attack only)')
 
 # Model performance after attack
 y_fool2_pred = best_rf_adv.predict(X_test2)
@@ -170,7 +180,18 @@ y_pred2_adv = best_rf.predict(X_test2_adv)
 print('Evaluation after attack:')
 evaluation_test2_adv = evaluate(y_test2_adv, y_pred2_adv, 'Prediction on adversarial testing set')
 
+y_fool2_attack_pred = best_rf_adv.predict(X_test2_attack)
+X_test2_attack_adv = X_test2_attack[y_fool2_attack_pred]
+y_test2_attack_adv = y_test2_attack[y_fool2_attack_pred]
+y_pred2_attack_adv = best_rf.predict(X_test2_attack_adv)
+print('Evaluation after attack (attack only):')
+evaluation_test2_adv_attack = evaluate(y_test2_attack_adv, y_pred2_attack_adv, 'Prediction on adversarial testing set (attack only)')
+
 # Fooling case prediction performance
 y_fool2 = np.logical_and(y_pred2 == 0, y_test2 != 0)
 print('Fooling case evaluation:')
 evaluation_fool2 = evaluate(y_fool2, y_fool2_pred, 'Fooling case prediction')
+
+y_fool2_attack = np.logical_and(y_pred2_attack == 0, y_test2_attack != 0)
+print('Fooling case evaluation:')
+evaluation_fool2_attack = evaluate(y_fool2_attack, y_fool2_attack_pred, 'Fooling case prediction (attack only)')
