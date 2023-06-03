@@ -1,5 +1,6 @@
 # Data Processing
 from pathlib import Path
+import json
 import pandas as pd
 import numpy as np
 # Modelling
@@ -23,6 +24,10 @@ tuning_adv = False
 tuning_retrain = False
 
 # Data
+attack2idx_path = preprocess_dir / 'attack2idx.json'
+attack2idx = json.loads(attack2idx_path.read_text())
+attack_name = list(attack2idx.keys())
+
 label = 'label' if mode[0] ==  'b' else 'attack_cat'
 def load_data(split):
     data = pd.read_csv(preprocess_dir / f'{split}.csv')
@@ -95,7 +100,7 @@ feature_importances = pd.Series(best_rf.feature_importances_, index=X_train.colu
 feature_importances[:20].plot.bar()
 
 # Model performance
-def evaluate(y_test, y_pred, cm_title='Confusion matrix'):
+def evaluate(y_test, y_pred, cm_title='Confusion matrix', display_labels=attack_name):
     accuracy = accuracy_score(y_test, y_pred)
     precision = precision_score(y_test, y_pred, average=None)
     precision_avg = precision_score(y_test, y_pred, average='weighted')
@@ -116,6 +121,8 @@ def evaluate(y_test, y_pred, cm_title='Confusion matrix'):
     fig, ax = plt.subplots(figsize=(8, 8))
     ConfusionMatrixDisplay.from_predictions(
         y_test, y_pred,
+        display_labels=display_labels,
+        xticks_rotation=45 if len(display_labels) > 2 else 0,
         values_format='d',
         cmap=plt.cm.Blues,
         ax=ax
@@ -203,11 +210,11 @@ def adversarial_attack(X_test1, y_test1, X_test2, y_test2, best_rf, tag=''):
     # Fooling case prediction performance
     # y_fool2 = np.logical_and(y_pred2 == 0, y_test2 != 0)
     # print('Fooling case evaluation:')
-    # evaluation_fool2 = evaluate(y_fool2, y_fool2_pred, f'Fooling case{tag}')
+    # evaluation_fool2 = evaluate(y_fool2, y_fool2_pred, f'Fooling case{tag}', ['Not fool', 'Fool'])
     
     y_fool2_attack = np.logical_and(y_pred2_attack == 0, y_test2_attack != 0)
     print('Fooling case evaluation (attack only):')
-    evaluation_fool2_attack = evaluate(y_fool2_attack, y_fool2_attack_pred, f'Fooling case{tag}')
+    evaluation_fool2_attack = evaluate(y_fool2_attack, y_fool2_attack_pred, f'Fooling case{tag}', ['Not fool', 'Fool'])
     
     evaluation = {
         'evaluation_test1': evaluation_test1,
