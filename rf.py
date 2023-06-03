@@ -156,29 +156,29 @@ def evaluate(y_test, y_pred, cm_title='Confusion matrix', display_labels=attack_
 # Split testing set
 X_test1, X_test2, y_test1, y_test2 = train_test_split(X_test, y_test, train_size=0.5, random_state=1)
 
-def adversarial_attack(X_test1, y_test1, X_test2, y_test2, best_rf, tag=''):
+# Adversarial attack
+# Label: fooled or not
+X_test1_attack = X_test1[y_test1 != 0]
+y_test1_attack = y_test1[y_test1 != 0]
+y_pred1_attack = best_rf.predict(X_test1_attack)
+y_fool1 = np.logical_and(y_pred1_attack == 0, y_test1_attack != 0)
+
+# Training
+if tuning_adv:
+    rand_search_adv, results_adv = hyperparameter_tuning(X_test1_attack, y_fool1)
+    results_adv.to_csv(output_dir / f'rf_results_adv_{mode}.csv')
+    best_rf_adv = rand_search_adv.best_estimator_
+    print('Best hyperparameters:',  rand_search_adv.best_params_)
+    print('Best score:', rand_search_adv.best_score_)
+else:
+    best_rf_adv = RandomForestClassifier(n_estimators=38, max_depth=17, class_weight='balanced' if weighted else None)
+    best_rf_adv.fit(X_test1_attack, y_fool1)
+
+def attack_efficiency(X_test1, y_test1, X_test2, y_test2, best_rf, tag=''):
     # Model performance
     y_pred1 = best_rf.predict(X_test1)
     print('test1 evaluation:')
     evaluation_test1 = evaluate(y_test1, y_pred1, f'Test1{tag}')
-    
-    # Adversarial attack
-    # Label: fooled or not
-    X_test1_attack = X_test1[y_test1 != 0]
-    y_test1_attack = y_test1[y_test1 != 0]
-    y_pred1_attack = best_rf.predict(X_test1_attack)
-    y_fool1 = np.logical_and(y_pred1_attack == 0, y_test1_attack != 0)
-    
-    # Training
-    if tuning_adv:
-        rand_search_adv, results_adv = hyperparameter_tuning(X_test1_attack, y_fool1)
-        results_adv.to_csv(output_dir / f'rf_results_adv_{tag}_{mode}.csv')
-        best_rf_adv = rand_search_adv.best_estimator_
-        print('Best hyperparameters:',  rand_search_adv.best_params_)
-        print('Best score:', rand_search_adv.best_score_)
-    else:
-        best_rf_adv = RandomForestClassifier(n_estimators=38, max_depth=17, class_weight='balanced' if weighted else None)
-        best_rf_adv.fit(X_test1_attack, y_fool1)
     
     # Attack efficiency: model performance reduction
     # Model performance before attack
@@ -229,7 +229,7 @@ def adversarial_attack(X_test1, y_test1, X_test2, y_test2, best_rf, tag=''):
     return evaluation
 
 print('Attack without retraining:')
-evaluation_attack = adversarial_attack(X_test1, y_test1, X_test2, y_test2, best_rf)
+evaluation_attack = attack_efficiency(X_test1, y_test1, X_test2, y_test2, best_rf)
 
 # Model retraining
 X_retrain = pd.concat([X_train, X_test1], ignore_index=True)
@@ -245,4 +245,4 @@ else:
     best_rf_retrain = RandomForestClassifier(n_estimators=38, max_depth=17, class_weight='balanced' if weighted else None)
     best_rf_retrain.fit(X_retrain, y_retrain)
 print('Attack with retraining:')
-evaluation_attack_retrain = adversarial_attack(X_test1, y_test1, X_test2, y_test2, best_rf_retrain, tag=' after retraining')
+evaluation_attack_retrain = attack_efficiency(X_test1, y_test1, X_test2, y_test2, best_rf_retrain, tag=' after retraining')
