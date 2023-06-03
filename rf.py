@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 # Modelling
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, confusion_matrix, precision_score, recall_score, ConfusionMatrixDisplay
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, ConfusionMatrixDisplay
 from sklearn.model_selection import RandomizedSearchCV, train_test_split
 from scipy.stats import randint
 import matplotlib.pyplot as plt
@@ -101,11 +101,15 @@ def evaluate(y_test, y_pred, cm_title='Confusion matrix'):
     precision_avg = precision_score(y_test, y_pred, average='weighted')
     recall = recall_score(y_test, y_pred, average=None)
     recall_avg = recall_score(y_test, y_pred, average='weighted')
+    f1 = f1_score(y_test, y_pred, average=None)
+    fl_avg = f1_score(y_test, y_pred, average='weighted')
     print("Accuracy:", accuracy)
     print("Precision:", precision)
     print("Precision (weighted):", precision_avg)
     print("Recall:", recall)
     print("Recall (weighted):", recall_avg)
+    print("F1 Score:", f1)
+    print("F1 Score (weighted):", fl_avg)
     
     cm = confusion_matrix(y_test, y_pred)    
     # ConfusionMatrixDisplay(confusion_matrix=cm).plot()
@@ -127,6 +131,8 @@ def evaluate(y_test, y_pred, cm_title='Confusion matrix'):
         'precision_avg': precision_avg,
         'recall': recall,
         'recall_avg': recall_avg,
+        'f1': f1,
+        'fl_avg': fl_avg,
         'cm': cm
     }
     return evaluation
