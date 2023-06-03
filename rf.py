@@ -157,62 +157,65 @@ def adversarial_attack(X_test1, y_test1, X_test2, y_test2, best_rf, tag=''):
     
     # Adversarial attack
     # Label: fooled or not
-    y_fool1 = np.logical_and(y_pred1 == 0, y_test1 != 0)
+    X_test1_attack = X_test1[y_test1 != 0]
+    y_test1_attack = y_test1[y_test1 != 0]
+    y_pred1_attack = best_rf.predict(X_test1_attack)
+    y_fool1 = np.logical_and(y_pred1_attack == 0, y_test1_attack != 0)
     
     # Training
     if tuning_adv:
-        rand_search_adv, results_adv = hyperparameter_tuning(X_test1, y_fool1)
+        rand_search_adv, results_adv = hyperparameter_tuning(X_test1_attack, y_fool1)
         results_adv.to_csv(output_dir / f'rf_results_adv_{tag}_{mode}.csv')
         best_rf_adv = rand_search_adv.best_estimator_
         print('Best hyperparameters:',  rand_search_adv.best_params_)
         print('Best score:', rand_search_adv.best_score_)
     else:
         best_rf_adv = RandomForestClassifier(n_estimators=38, max_depth=17, class_weight='balanced' if weighted else None)
-        best_rf_adv.fit(X_test1, y_fool1)
+        best_rf_adv.fit(X_test1_attack, y_fool1)
     
     # Attack efficiency: model performance reduction
     # Model performance before attack
-    y_pred2 = best_rf.predict(X_test2)
-    print('Evaluation before attack:')
-    evaluation_test2 = evaluate(y_test2, y_pred2, f'Test2{tag}')
+    # y_pred2 = best_rf.predict(X_test2)
+    # print('Evaluation before attack:')
+    # evaluation_test2 = evaluate(y_test2, y_pred2, f'Test2{tag}')
     
     X_test2_attack = X_test2[y_test2 != 0]
     y_test2_attack = y_test2[y_test2 != 0]
     y_pred2_attack = best_rf.predict(X_test2_attack)
     print('Evaluation before attack (attack only):')
-    evaluation_test2_attack = evaluate(y_test2_attack, y_pred2_attack, f'Test2 (attack){tag}')
+    evaluation_test2_attack = evaluate(y_test2_attack, y_pred2_attack, f'Test2{tag}')
     
     # Model performance after attack
-    y_fool2_pred = best_rf_adv.predict(X_test2)
-    X_test2_adv = X_test2[y_fool2_pred]
-    y_test2_adv = y_test2[y_fool2_pred]
-    y_pred2_adv = best_rf.predict(X_test2_adv)
-    print('Evaluation after attack:')
-    evaluation_test2_adv = evaluate(y_test2_adv, y_pred2_adv, f'Adversarial test2{tag}')
+    # y_fool2_pred = best_rf_adv.predict(X_test2)
+    # X_test2_adv = X_test2[y_fool2_pred]
+    # y_test2_adv = y_test2[y_fool2_pred]
+    # y_pred2_adv = best_rf.predict(X_test2_adv)
+    # print('Evaluation after attack:')
+    # evaluation_test2_adv = evaluate(y_test2_adv, y_pred2_adv, f'Adversarial test2{tag}')
     
     y_fool2_attack_pred = best_rf_adv.predict(X_test2_attack)
     X_test2_attack_adv = X_test2_attack[y_fool2_attack_pred]
     y_test2_attack_adv = y_test2_attack[y_fool2_attack_pred]
     y_pred2_attack_adv = best_rf.predict(X_test2_attack_adv)
     print('Evaluation after attack (attack only):')
-    evaluation_test2_adv_attack = evaluate(y_test2_attack_adv, y_pred2_attack_adv, f'Adversarial test2 (attack){tag}')
+    evaluation_test2_adv_attack = evaluate(y_test2_attack_adv, y_pred2_attack_adv, f'Adversarial test2{tag}')
     
     # Fooling case prediction performance
-    y_fool2 = np.logical_and(y_pred2 == 0, y_test2 != 0)
-    print('Fooling case evaluation:')
-    evaluation_fool2 = evaluate(y_fool2, y_fool2_pred, f'Fooling case {tag}')
+    # y_fool2 = np.logical_and(y_pred2 == 0, y_test2 != 0)
+    # print('Fooling case evaluation:')
+    # evaluation_fool2 = evaluate(y_fool2, y_fool2_pred, f'Fooling case{tag}')
     
     y_fool2_attack = np.logical_and(y_pred2_attack == 0, y_test2_attack != 0)
-    print('Fooling case evaluation:')
-    evaluation_fool2_attack = evaluate(y_fool2_attack, y_fool2_attack_pred, f'Fooling case (attack){tag}')
+    print('Fooling case evaluation (attack only):')
+    evaluation_fool2_attack = evaluate(y_fool2_attack, y_fool2_attack_pred, f'Fooling case{tag}')
     
     evaluation = {
         'evaluation_test1': evaluation_test1,
-        'evaluation_test2': evaluation_test2,
+        # 'evaluation_test2': evaluation_test2,
         'evaluation_test2_attack': evaluation_test2_attack,
-        'evaluation_test2_adv': evaluation_test2_adv,
+        # 'evaluation_test2_adv': evaluation_test2_adv,
         'evaluation_test2_adv_attack': evaluation_test2_adv_attack,
-        'evaluation_fool2': evaluation_fool2,
+        # 'evaluation_fool2': evaluation_fool2,
         'evaluation_fool2_attack': evaluation_fool2_attack
     }
     
