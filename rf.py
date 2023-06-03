@@ -54,7 +54,7 @@ if feature_selection:
 def hyperparameter_tuning(X_train, y_train):
     param_dist = {'n_estimators': randint(10,100),
                   'max_depth': randint(5,20)}
-    rf = RandomForestClassifier(class_weight='balanced' if weighted else None)
+    rf = RandomForestClassifier(random_state=1, class_weight='balanced' if weighted else None)
     rand_search = RandomizedSearchCV(
         rf, 
         param_distributions = param_dist, 
@@ -78,7 +78,7 @@ if tuning:
     print('Best hyperparameters:',  rand_search.best_params_)
     print('Best score:', rand_search.best_score_)
 else:
-    best_rf = RandomForestClassifier(n_estimators=38, max_depth=17, class_weight='balanced' if weighted else None)
+    best_rf = RandomForestClassifier(n_estimators=38, max_depth=17, random_state=1, class_weight='balanced' if weighted else None)
     best_rf.fit(X_train, y_train)
 
 # Visualizing results
@@ -171,7 +171,7 @@ if tuning_adv:
     print('Best hyperparameters:',  rand_search_adv.best_params_)
     print('Best score:', rand_search_adv.best_score_)
 else:
-    best_rf_adv = RandomForestClassifier(n_estimators=38, max_depth=17, class_weight='balanced' if weighted else None)
+    best_rf_adv = RandomForestClassifier(n_estimators=38, max_depth=17, random_state=1, class_weight='balanced' if weighted else None)
     best_rf_adv.fit(X_test1_attack, y_fool1)
 
 def attack_efficiency(X_test1, y_test1, X_test2, y_test2, best_rf, tag=''):
@@ -242,7 +242,7 @@ if tuning_retrain:
     print('Best hyperparameters:',  rand_search_retrain.best_params_)
     print('Best score:', rand_search_retrain.best_score_)
 else:
-    best_rf_retrain = RandomForestClassifier(n_estimators=38, max_depth=17, class_weight='balanced' if weighted else None)
+    best_rf_retrain = RandomForestClassifier(n_estimators=38, max_depth=17, random_state=1, class_weight='balanced' if weighted else None)
     best_rf_retrain.fit(X_retrain, y_retrain)
 print('Attack with retraining:')
 evaluation_attack_retrain = attack_efficiency(X_test1, y_test1, X_test2, y_test2, best_rf_retrain, tag=' after retraining')
