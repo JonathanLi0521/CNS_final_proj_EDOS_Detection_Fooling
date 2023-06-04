@@ -100,7 +100,7 @@ feature_importances = pd.Series(best_rf.feature_importances_, index=X_train.colu
 feature_importances[:20].plot.bar()
 
 # Model performance
-def evaluate(y_test, y_pred, cm_title='Confusion matrix', display_labels=attack_name):
+def evaluate(y_test, y_pred, cm_title='Confusion matrix', display_labels=attack_name, return_fool_ratio=True):
     accuracy = accuracy_score(y_test, y_pred)
     precision = precision_score(y_test, y_pred, average=None)
     precision_avg = precision_score(y_test, y_pred, average='weighted')
@@ -142,6 +142,12 @@ def evaluate(y_test, y_pred, cm_title='Confusion matrix', display_labels=attack_
         'fl_avg': fl_avg,
         'cm': cm
     }
+    # Fooling ratio
+    if return_fool_ratio:
+        evaluation['fool_ratio'] = np.array([sum(np.logical_and(y_pred == 0, y_test == attack_cat)) / (sum(y_test == attack_cat) + 1e-5)
+                      for attack_cat in range(1, 10)])
+        evaluation['fool_ratio_avg'] = np.array(sum(np.logical_and(y_pred == 0, y_test != 0)) / len(y_test))
+        
     return evaluation
 
 # y_pred = best_rf.predict(X_test)
@@ -210,11 +216,11 @@ def attack_efficiency(X_test1, y_test1, X_test2, y_test2, best_rf, tag=''):
     # Fooling case prediction performance
     # y_fool2 = np.logical_and(y_pred2 == 0, y_test2 != 0)
     # print('Fooling case evaluation:')
-    # evaluation_fool2 = evaluate(y_fool2, y_fool2_pred, f'Fooling case{tag}', ['Not fool', 'Fool'])
+    # evaluation_fool2 = evaluate(y_fool2, y_fool2_pred, f'Fooling case{tag}', ['Not fool', 'Fool'], return_fool_ratio=False)
     
     y_fool2_attack = np.logical_and(y_pred2_attack == 0, y_test2_attack != 0)
     print('Fooling case evaluation (attack only):')
-    evaluation_fool2_attack = evaluate(y_fool2_attack, y_fool2_attack_pred, f'Fooling case{tag}', ['Not fool', 'Fool'])
+    evaluation_fool2_attack = evaluate(y_fool2_attack, y_fool2_attack_pred, f'Fooling case{tag}', ['Not fool', 'Fool'], return_fool_ratio=False)
     
     evaluation = {
         'evaluation_test1': evaluation_test1,
