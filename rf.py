@@ -9,6 +9,10 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 from sklearn.model_selection import RandomizedSearchCV, train_test_split
 from scipy.stats import randint
 import matplotlib.pyplot as plt
+import joblib
+
+import warnings
+warnings.filterwarnings("ignore")
 # # Tree Visualisation
 # from sklearn.tree import export_graphviz
 # import graphviz
@@ -80,6 +84,7 @@ if tuning:
 else:
     best_rf = RandomForestClassifier(n_estimators=38, max_depth=17, random_state=1, class_weight='balanced' if weighted else None)
     best_rf.fit(X_train, y_train)
+    # joblib.dump(best_rf, './rf/best_rf.model')
 
 # Visualizing results
 # n = 3
@@ -108,13 +113,13 @@ def evaluate(y_test, y_pred, cm_title='Confusion matrix', display_labels=attack_
     recall_avg = recall_score(y_test, y_pred, average='weighted')
     f1 = f1_score(y_test, y_pred, average=None)
     fl_avg = f1_score(y_test, y_pred, average='weighted')
-    print("Accuracy:", accuracy)
-    print("Precision:", precision)
-    print("Precision (weighted):", precision_avg)
-    print("Recall:", recall)
-    print("Recall (weighted):", recall_avg)
-    print("F1 Score:", f1)
-    print("F1 Score (weighted):", fl_avg)
+    # print("Accuracy:", accuracy)
+    # print("Precision:", precision)
+    # print("Precision (weighted):", precision_avg)
+    # print("Recall:", recall)
+    # print("Recall (weighted):", recall_avg)
+    # print("F1 Score:", f1)
+    # print("F1 Score (weighted):", fl_avg)
     
     cm = confusion_matrix(y_test, y_pred)    
     # ConfusionMatrixDisplay(confusion_matrix=cm).plot()
@@ -130,7 +135,9 @@ def evaluate(y_test, y_pred, cm_title='Confusion matrix', display_labels=attack_
     plt.xlabel('Predicted label', fontsize=15)
     plt.ylabel('True label', fontsize=15)
     plt.title(cm_title, fontsize=15)
-    plt.show()
+    plt.tight_layout()
+    # plt.show()
+    # plt.savefig(f"./rf/fig{count}.png")
     
     evaluation = {
         'accuracy': accuracy,
@@ -147,6 +154,9 @@ def evaluate(y_test, y_pred, cm_title='Confusion matrix', display_labels=attack_
         evaluation['fool_ratio'] = np.array([sum(np.logical_and(y_pred == 0, y_test == attack_cat)) / (sum(y_test == attack_cat) + 1e-5)
                       for attack_cat in range(1, 10)])
         evaluation['fool_ratio_avg'] = np.array(sum(np.logical_and(y_pred == 0, y_test != 0)) / len(y_test))
+
+        print(evaluation['fool_ratio_avg'])
+        print(evaluation['fool_ratio'])
         
     return evaluation
 
@@ -179,6 +189,7 @@ if tuning_adv:
 else:
     best_rf_adv = RandomForestClassifier(n_estimators=38, max_depth=17, random_state=1, class_weight='balanced' if weighted else None)
     best_rf_adv.fit(X_test1_attack, y_fool1)
+    # joblib.dump(best_rf_adv, './rf/rf_adv.model')
 
 def attack_efficiency(X_test1, y_test1, X_test2, y_test2, best_rf, tag='', count = 0):
     # Model performance
@@ -250,5 +261,6 @@ if tuning_retrain:
 else:
     best_rf_retrain = RandomForestClassifier(n_estimators=38, max_depth=17, random_state=1, class_weight='balanced' if weighted else None)
     best_rf_retrain.fit(X_retrain, y_retrain)
+    # joblib.dump(best_rf_retrain, './rf/best_rf_retrain.model')
 print('Attack with retraining:')
 evaluation_attack_retrain = attack_efficiency(X_test1, y_test1, X_test2, y_test2, best_rf_retrain, tag=' after retraining', count = 4)

@@ -19,7 +19,7 @@ warnings.filterwarnings("ignore")
 # import graphviz
 
 preprocess_dir = Path('./preprocess/')
-output_dir = Path('./svm/')
+output_dir = Path('./rf_svm/')
 output_dir.mkdir(parents=True, exist_ok=True)
 mode = 'multiclass' # mode = ['binary', 'multiclass']
 feature_selection = False
@@ -43,51 +43,8 @@ def load_data(split):
 data_train, X_train, y_train = load_data('train')
 data_test, X_test, y_test = load_data('test')
 
-# Feature selection
-if feature_selection:
-    correlation = data_train.corr()
-    correlation_target = abs(correlation[label])
-    relevant_features = correlation_target[correlation_target > 0.3]
-    relevant_features = relevant_features.drop(['id', 'label', 'attack_cat']).index.tolist()
-    X_train = X_train[relevant_features]
-    X_test = X_test[relevant_features]
 
-# Split validation dataset
-# X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, train_size=0.7, random_state=1)
-
-# Training
-def hyperparameter_tuning(X_train, y_train):
-    param_dist = {'n_estimators': randint(10,100),
-                  'max_depth': randint(5,20)}
-    svm = SVC(C=100, kernel="linear")
-    # RandomForestClassifier(random_state=1, class_weight='balanced' if weighted else None)
-    rand_search = RandomizedSearchCV(
-        svm, 
-        param_distributions = param_dist, 
-        n_iter=10, 
-        cv=5,
-        random_state=1,
-        return_train_score=True
-    )
-    rand_search.fit(X_train, y_train)
-    results_all = pd.DataFrame.from_dict(rand_search.cv_results_)
-    results = results_all[['params', 'mean_train_score', 'mean_test_score']]
-    results = results.sort_values(by=['mean_test_score'], ascending=False)
-    results = results.round(decimals=4)
-    return rand_search, results
-
-if tuning:
-    rand_search, results = hyperparameter_tuning(X_train, y_train)
-    results.to_csv(output_dir / f'rf_results_{mode}.csv')
-    
-    best_svm = rand_search.best_estimator_
-    print('Best hyperparameters:',  rand_search.best_params_)
-    print('Best score:', rand_search.best_score_)
-else:
-    best_svm = SVC(C=100, kernel="linear")
-    best_svm.fit(X_train, y_train)
-    joblib.dump(best_svm, './svm/best_svm.model')
-
+best_rf = joblib.load('./rf/best_rf.model') # trained detection model
 
 # Evaluation
 
@@ -124,7 +81,7 @@ def evaluate(y_test, y_pred, cm_title='Confusion matrix', display_labels=attack_
     plt.title(cm_title, fontsize=15)
     plt.tight_layout()
     # plt.show()
-    # plt.savefig(f"./svm/fig{count}.png")
+    plt.savefig(f"./rf_svm/fig{count}.png")
     
     evaluation = {
         'accuracy': accuracy,
@@ -148,14 +105,6 @@ def evaluate(y_test, y_pred, cm_title='Confusion matrix', display_labels=attack_
         
     return evaluation
 
-# y_pred = best_svm.predict(X_test)
-# print('Test evaluation:')
-# evaluation_test = evaluate(y_test, y_pred, 'Testing set')
-# data_correct = data_test[np.logical_and(y_test != 0, y_pred == y_test)]
-# data_fool = data_test[np.logical_and(y_pred == 0, y_test != 0)]
-# data_correct.to_csv(output_dir / f'rf_correct_{mode}.csv', index=False)
-# data_fool.to_csv(output_dir / f'rf_fool_{mode}.csv', index=False)
-
 # Fooling case analysis
 # Split testing set
 X_test1, X_test2, y_test1, y_test2 = train_test_split(X_test, y_test, train_size=0.5, random_state=1)
@@ -164,25 +113,14 @@ X_test1, X_test2, y_test1, y_test2 = train_test_split(X_test, y_test, train_size
 # Label: fooled or not
 X_test1_attack = X_test1[y_test1 != 0]
 y_test1_attack = y_test1[y_test1 != 0]
-y_pred1_attack = best_svm.predict(X_test1_attack)
+y_pred1_attack = best_rf.predict(X_test1_attack)
 y_fool1 = np.logical_and(y_pred1_attack == 0, y_test1_attack != 0)
 
-# Training
-if tuning_adv:
-    rand_search_adv, results_adv = hyperparameter_tuning(X_test1_attack, y_fool1)
-    results_adv.to_csv(output_dir / f'rf_results_adv_{mode}.csv')
-    best_svm_adv = rand_search_adv.best_estimator_
-    print('Best hyperparameters:',  rand_search_adv.best_params_)
-    print('Best score:', rand_search_adv.best_score_)
-else:
-    best_svm_adv = SVC(C=100, kernel="linear")
-    # RandomForestClassifier(n_estimators=38, max_depth=17, random_state=1, class_weight='balanced' if weighted else None)
-    best_svm_adv.fit(X_test1_attack, y_fool1)
-    joblib.dump(best_svm_adv, './svm/best_svm_adv.model')
+best_svm_adv = joblib.load("./svm/best_svm_adv.model") # trained svm adv model (trained by svm detection model)
 
-def attack_efficiency(X_test1, y_test1, X_test2, y_test2, best_svm, tag='', count = 0):
+def attack_efficiency(X_test1, y_test1, X_test2, y_test2, best_rf, tag='', count = 0):
     # Model performance
-    y_pred1 = best_svm.predict(X_test1)
+    y_pred1 = best_rf.predict(X_test1)
     print('test1 evaluation:')
     evaluation_test1 = evaluate(y_test1, y_pred1, f'Test1{tag}', count=1+count)
     
@@ -194,7 +132,7 @@ def attack_efficiency(X_test1, y_test1, X_test2, y_test2, best_svm, tag='', coun
     
     X_test2_attack = X_test2[y_test2 != 0]
     y_test2_attack = y_test2[y_test2 != 0]
-    y_pred2_attack = best_svm.predict(X_test2_attack)
+    y_pred2_attack = best_rf.predict(X_test2_attack)
     print('Evaluation before attack (attack only):')
     evaluation_test2_attack = evaluate(y_test2_attack, y_pred2_attack, f'Test2{tag}', count = 2+count)
     
@@ -209,7 +147,7 @@ def attack_efficiency(X_test1, y_test1, X_test2, y_test2, best_svm, tag='', coun
     y_fool2_attack_pred = best_svm_adv.predict(X_test2_attack)
     X_test2_attack_adv = X_test2_attack[y_fool2_attack_pred]
     y_test2_attack_adv = y_test2_attack[y_fool2_attack_pred]
-    y_pred2_attack_adv = best_svm.predict(X_test2_attack_adv)
+    y_pred2_attack_adv = best_rf.predict(X_test2_attack_adv)
     print('Evaluation after attack (attack only):')
     evaluation_test2_adv_attack = evaluate(y_test2_attack_adv, y_pred2_attack_adv, f'Adversarial test2{tag}', count = 3+count)
     
@@ -235,22 +173,9 @@ def attack_efficiency(X_test1, y_test1, X_test2, y_test2, best_svm, tag='', coun
     return evaluation
 
 print('Attack without retraining:')
-evaluation_attack = attack_efficiency(X_test1, y_test1, X_test2, y_test2, best_svm, count = 0)
+evaluation_attack = attack_efficiency(X_test1, y_test1, X_test2, y_test2, best_rf, count = 0)
 
-# Model retraining
-X_retrain = pd.concat([X_train, X_test1], ignore_index=True)
-y_retrain = pd.concat([y_train, y_test1], ignore_index=True)
-if tuning_retrain:
-    rand_search_retrain, results_retrain = hyperparameter_tuning(X_retrain, y_retrain)
-    results_retrain.to_csv(output_dir / f'rf_results_retrain_{mode}.csv')
-    
-    best_svm_retrain = rand_search_retrain.best_estimator_
-    print('Best hyperparameters:',  rand_search_retrain.best_params_)
-    print('Best score:', rand_search_retrain.best_score_)
-else:
-    best_svm_retrain = SVC(C=100, kernel="linear")
-    # RandomForestClassifier(n_estimators=38, max_depth=17, random_state=1, class_weight='balanced' if weighted else None)
-    best_svm_retrain.fit(X_retrain, y_retrain)
-    joblib.dump(best_svm_retrain, './svm/best_svm_retrain.model')
+best_rf_retrain = joblib.load("./rf/best_rf_retrain.model") # trained retrain rf detection model
+
 print('Attack with retraining:')
-evaluation_attack_retrain = attack_efficiency(X_test1, y_test1, X_test2, y_test2, best_svm_retrain, tag=' after retraining', count = 4)
+evaluation_attack_retrain = attack_efficiency(X_test1, y_test1, X_test2, y_test2, best_rf_retrain, tag=' after retraining', count = 4)
